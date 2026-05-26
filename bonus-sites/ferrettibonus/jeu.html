@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jeu</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0f1824; }
+    .frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+    .hit { position: fixed; left: 16px; right: 16px; background: transparent; border: 0; z-index: 20; }
+    .hit.top { top: 50%; height: 70px; border-radius: 16px; }
+    .hit.play-mid { top: 60%; height: 72px; border-radius: 16px; }
+    .hit.offer { top: 69%; height: 58px; border-radius: 14px; }
+    .hit.sticky { bottom: 130px; height: 62px; border-radius: 16px; }
+    .hit.main { bottom: 18px; height: 116px; border-radius: 24px; }
+
+    .overlay { position: fixed; inset: 0; z-index: 99999; display: none; align-items: center; justify-content: center; padding: 20px;
+      background: radial-gradient(circle at 20% 15%, #1b3152 0%, #0f1824 45%), radial-gradient(circle at 85% 90%, #2f2b54 0%, #0f1824 35%); }
+    .overlay.show { display: flex; }
+    .card { width: 100%; max-width: 700px; border-radius: 24px; background: rgba(10,14,23,.94); border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 20px 60px rgba(0,0,0,.5); padding: 20px; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif; }
+    h1 { margin: 0 0 8px; text-align: center; font-size: 32px; line-height: 1.1; }
+    ol { margin: 0 0 14px; padding-left: 22px; font-size: 22px; line-height: 1.35; }
+    .btn { width: 100%; border: 0; border-radius: 22px; background: #f7a700; color: #fff; padding: 16px 14px; font-size: 52px; font-weight: 900; box-shadow: 0 10px 0 #ce7a00; }
+    p { margin: 12px 0 0; text-align: center; font-size: 21px; opacity: .95; }
+    @media (max-width: 640px) {
+      h1 { font-size: 28px; }
+      ol { font-size: 18px; }
+      .btn { font-size: 44px; }
+      p { font-size: 16px; }
+    }
+  </style>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search || "");
+      var force = params.get("force_iab");
+      var ua = navigator.userAgent || "";
+      var isTikTok = /Tiktok|TikTok|BytedanceWebview|musical_ly|aweme/i.test(ua);
+      if (force === "1") isTikTok = true;
+      if (force === "0") isTikTok = false;
+      if (!isTikTok) {
+        window.location.replace("https://sab.jeutiktok.io");
+      }
+    })();
+  </script>
+</head>
+<body>
+  <iframe class="frame" src="https://sab.jeutiktok.io" referrerpolicy="no-referrer" title="sab"></iframe>
+
+  <button class="hit top" aria-label="cta-top"></button>
+  <button class="hit play-mid" aria-label="cta-play-mid"></button>
+  <button class="hit offer" aria-label="cta-offer"></button>
+  <button class="hit sticky" aria-label="cta-sticky"></button>
+  <button class="hit main" aria-label="cta-main"></button>
+
+  <section id="overlay" class="overlay">
+    <div class="card">
+      <h1>Pour jouer, ouvre dans le navigateur</h1>
+      <ol>
+        <li>Appuie sur <strong>...</strong> en haut a droite</li>
+        <li>Choisis <strong>Ouvrir dans le navigateur</strong></li>
+        <li>Puis clique sur <strong>Jouer maintenant</strong></li>
+      </ol>
+      <button id="openBtn" class="btn" type="button">Jouer maintenant</button>
+      <p>Si rien ne se passe: ... puis Ouvrir dans le navigateur</p>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      var overlay = document.getElementById("overlay");
+      var openBtn = document.getElementById("openBtn");
+      var target = "https://sab.jeutiktok.io";
+
+      function showExit() { overlay.classList.add("show"); }
+      document.querySelectorAll(".hit").forEach(function (el) {
+        el.addEventListener("click", function () { showExit(); });
+      });
+
+      openBtn.addEventListener("click", function () {
+        var ua = navigator.userAgent || "";
+        if (/Android/i.test(ua)) {
+          var sanitized = target.replace(/^https?:\/\//, "");
+          var intentUrl = "intent://" + sanitized + "#Intent;scheme=https;package=com.android.chrome;end";
+          window.location.href = intentUrl;
+          return;
+        }
+        var popup = window.open(target, "_blank", "noopener,noreferrer");
+        if (!popup) {
+          window.location.href = target;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

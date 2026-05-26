@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mega Block - Game</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #000;
+        }
+        iframe {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            border: 0;
+        }
+        .fg-popup {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            font-family: 'Arial Black', 'Arial', sans-serif;
+        }
+        .fg-popup.visible {
+            display: flex;
+        }
+        .fg-popup .box {
+            position: relative;
+            width: 260px;
+            max-width: 88vw;
+            text-align: center;
+        }
+        .fg-popup .card {
+            background: #111;
+            border: 4px solid #f5c400;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+        .fg-popup .stripe {
+            height: 22px;
+            background: repeating-linear-gradient(
+                45deg,
+                #f5c400 0px,
+                #f5c400 12px,
+                #1a1a1a 12px,
+                #1a1a1a 24px
+            );
+        }
+        .fg-popup .card-body {
+            padding: 14px 16px 16px;
+        }
+        .fg-popup h2 {
+            margin: 0 0 4px;
+            font-size: 34px;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            line-height: 1.1;
+            text-shadow: 2px 2px 0 #000;
+        }
+        .fg-popup .label {
+            font-size: 16px;
+            font-weight: 900;
+            color: #f5c400;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 8px;
+        }
+        .fg-popup .offer {
+            font-size: 15px;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .fg-popup .cta {
+            display: block;
+            width: 100%;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 900;
+            padding: 13px;
+            border-radius: 50px;
+            border: 0;
+            cursor: pointer;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .fg-popup .cta.green {
+            background: linear-gradient(180deg, #6cdd3a 0%, #3eb80a 100%);
+            border-bottom: 4px solid #2a8a05;
+        }
+        .fg-popup .cta.green:hover {
+            background: linear-gradient(180deg, #7aee45 0%, #4acb10 100%);
+        }
+        .fg-popup .cta.orange {
+            background: linear-gradient(180deg, #ff9d2e 0%, #e8750a 100%);
+            border-bottom: 4px solid #a84f00;
+        }
+        .fg-popup .cta.orange:hover {
+            background: linear-gradient(180deg, #ffae4a 0%, #f88517 100%);
+        }
+    </style>
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "wbbj53so9d");
+</script>
+</head>
+<body>
+    <iframe
+        id="game-frame"
+        src="/cr2/megablock/index.html?v=1774806055&lang=en&langLock=1&country=IT&operatorId=local-operator&gameMode=megablock&currency=EUR&displayCurrency=EUR&difficulty=HARDCORE"
+        allow="autoplay; fullscreen; clipboard-write"
+        allowfullscreen>
+    </iframe>
+
+    <div id="balance-popup" class="fg-popup" role="dialog" aria-modal="true" aria-labelledby="balance-popup-title">
+        <div class="box">
+            <div class="card">
+                <div class="stripe"></div>
+                <div class="card-body">
+                    <h2 id="balance-popup-title">TU AS GAGNÉ</h2>
+                    <p class="label">BONUS GRATUIT</p>
+                    <p class="offer">20€ DÉPOSÉS = 40€ EN JEU</p>
+                </div>
+                <div class="stripe"></div>
+            </div>
+            <button class="cta green" type="button" id="balance-cta">JE RÉCUPÈRE</button>
+        </div>
+    </div>
+
+    <div id="retry-popup" class="fg-popup" role="dialog" aria-modal="true" aria-labelledby="retry-popup-title">
+        <div class="box">
+            <div class="card">
+                <div class="stripe"></div>
+                <div class="card-body">
+                    <h2 id="retry-popup-title">OH NON !</h2>
+                    <p class="label">TU AS TOUT PERDU</p>
+                    <p class="offer">TENTE TA CHANCE À NOUVEAU</p>
+                </div>
+                <div class="stripe"></div>
+            </div>
+            <button class="cta orange" type="button" id="retry-cta">RESSAYER</button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var params = new URLSearchParams(window.location.search || '');
+            var sub1 = (params.get('sub1') || '').trim();
+            var landing = (params.get('landing') || '').trim();
+            if (!sub1 && landing) sub1 = 'z' + landing;
+            if (!sub1) sub1 = 'zmegablock';
+
+            var SMARTLINK = 'https://smartlinks.aprilftd.com/click?sub1=' + encodeURIComponent(sub1);
+            function resolveRedirectTarget() {
+                var raw = (params.get('to') || '').trim();
+                if (!raw) return null;
+                try { return decodeURIComponent(raw); } catch (e) { return raw; }
+            }
+            // Clé localStorage par landing (chaque affilié garde son propre état)
+            var LS_KEY = 'fakegame_claimed_mb_' + (landing || sub1.replace(/^z/, '') || 'default');
+
+            // Mode preview/démo : ?preview=1 → pas de popup, pas de redirect, le jeu tourne libre
+            var PREVIEW_MODE = params.get('preview') === '1' || params.get('demo') === '1';
+            if (PREVIEW_MODE) {
+                try { localStorage.removeItem(LS_KEY); } catch (e) {}
+            }
+
+            var redirected = false;
+            function doRedirect(source) {
+                if (PREVIEW_MODE) return;
+                if (redirected) return;
+                redirected = true;
+                try { localStorage.setItem(LS_KEY, '1'); } catch (e) {}
+                try {
+                    var url = '/api/ab-landing/log?event=' + encodeURIComponent(source || 'cta_click') +
+                        '&variant=A' +
+                        '&landing=' + encodeURIComponent(landing || sub1.replace(/^z/, '')) +
+                        '&sub1=' + encodeURIComponent(sub1) +
+                        '&_t=' + Date.now();
+                    if (navigator.sendBeacon) navigator.sendBeacon(url);
+                    else { var img = new Image(); img.src = url; }
+                } catch (e) {}
+                try {
+                    new Image().src = '/api/sparta-pixel?afp=' + encodeURIComponent(sub1) + '&offer=Megablock&_t=' + Date.now();
+                    new Image().src = '/api/april-pixel?afp=' + encodeURIComponent(sub1) + '&tracking_code=' + encodeURIComponent(sub1) + '&offer=Megablock&_t=' + Date.now();
+                } catch (e) {}
+                setTimeout(function () { window.location.replace(resolveRedirectTarget() || SMARTLINK); }, 150);
+            }
+
+            // Short-circuit : si déjà vu la popup win, skip le jeu et va direct au smartlink
+            // (désactivé en mode _test ou preview pour pouvoir retester / démontrer)
+            // Pas de pixel ici (déjà compté lors du 1er click) — redirection silencieuse
+            var testMode = params.get('_test');
+            try {
+                if (!PREVIEW_MODE && !testMode && localStorage.getItem(LS_KEY) === '1') {
+                    redirected = true;
+                    setTimeout(function () { window.location.replace(resolveRedirectTarget() || SMARTLINK); }, 0);
+                    return;
+                }
+            } catch (e) {}
+
+            var balancePopup = document.getElementById('balance-popup');
+            var balanceCta = document.getElementById('balance-cta');
+            var retryPopup = document.getElementById('retry-popup');
+            var retryCta = document.getElementById('retry-cta');
+            var iframe = document.getElementById('game-frame');
+
+            var winShown = false;
+            var retryShown = false;
+            var sawNonZero = false;
+
+            balanceCta.addEventListener('click', function () { doRedirect('cta_click'); });
+            retryCta.addEventListener('click', function () { window.location.reload(); });
+
+            if (!PREVIEW_MODE) setInterval(function () {
+                if (winShown || retryShown) return;
+                try {
+                    var game = iframe.contentWindow.__INHOUSE_MEGABLOCK_GAME__
+                           || iframe.contentWindow.__INHOUSE_LOCAL_GAME__;
+                    if (!game) return;
+                    var bal = typeof game.balance === 'number'
+                        ? game.balance
+                        : parseFloat(game.balance);
+                    if (isNaN(bal)) return;
+
+                    if (bal > 0) sawNonZero = true;
+
+                    // WIN : balance ≥ 100 → popup "TU AS GAGNÉ" + lock localStorage
+                    if (bal >= 100) {
+                        winShown = true;
+                        try { localStorage.setItem(LS_KEY, '1'); } catch (e) {}
+                        balancePopup.classList.add('visible');
+                        return;
+                    }
+
+                    // RETRY : balance = 0 (tout perdu) → popup "OH NON"
+                    // Anti faux-positif : ne trigger que si on a observé balance > 0 avant
+                    if (bal <= 0 && sawNonZero) {
+                        retryShown = true;
+                        retryPopup.classList.add('visible');
+                    }
+                } catch (e) {}
+            }, 500);
+
+            // Debug QA : ?_test=win ou ?_test=retry (ne touche pas au localStorage)
+            if (testMode === 'win' || testMode === '1') {
+                winShown = true;
+                balancePopup.classList.add('visible');
+            } else if (testMode === 'retry') {
+                retryShown = true;
+                retryPopup.classList.add('visible');
+            }
+
+            window.FbPlayableAd = {
+                onCTAClick: function () { doRedirect('cta_click'); },
+                onAdClick: function () { doRedirect('cta_click'); },
+                getCTAClickEvent: function () { return 'cta_click'; }
+            };
+        })();
+    </script>
+
+    <!-- Bouton "Quitter la démo" — apparaît après 15s -->
+    <div id="quit-demo-btn" style="display:none;position:fixed;top:14px;right:14px;z-index:99999;">
+        <button id="quit-demo-inner" onclick="window.FbPlayableAd && window.FbPlayableAd.onCTAClick()">Quitter la démo</button>
+    </div>
+    <style>
+        #quit-demo-inner {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1.2;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            background: radial-gradient(circle at 35% 35%, #ff9a5c, #e8400a);
+            box-shadow: 0 0 0 0 rgba(232,64,10,0.7);
+            animation: qd-fadein 0.5s ease forwards, qd-pulse 1.8s ease-in-out 0.5s infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        #quit-demo-inner::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 60%;
+            height: 200%;
+            background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%);
+            animation: qd-shimmer 2.2s ease-in-out infinite;
+        }
+        #quit-demo-inner:active { transform: scale(0.93); }
+        @keyframes qd-fadein {
+            from { opacity: 0; transform: scale(0.5); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes qd-pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(232,64,10,0.7); }
+            60%  { box-shadow: 0 0 0 14px rgba(232,64,10,0); }
+            100% { box-shadow: 0 0 0 0 rgba(232,64,10,0); }
+        }
+        @keyframes qd-shimmer {
+            0%   { left: -60%; }
+            50%  { left: 120%; }
+            100% { left: 120%; }
+        }
+    </style>
+    <script>
+        setTimeout(function () {
+            var btn = document.getElementById('quit-demo-btn');
+            if (btn) btn.style.display = 'block';
+        }, 15000);
+    </script>
+</body>
+</html>

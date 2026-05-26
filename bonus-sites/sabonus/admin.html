@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sabinho Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1a1210; color: #e2e8f0; font-family: system-ui, sans-serif; min-height: 100vh; }
+
+    /* PIN SCREEN */
+    #pin-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; gap: 24px;
+    }
+    #pin-screen h1 { font-size: 22px; color: #fbbf24; }
+    #pin-display {
+      font-size: 40px; letter-spacing: 18px; background: #2d2016; border-radius: 12px;
+      padding: 16px 32px; min-width: 180px; text-align: center; border: 2px solid #3d2a1a;
+    }
+    .pin-grid { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; }
+    .pin-btn {
+      height: 72px; font-size: 24px; font-weight: 700; border: none; border-radius: 12px;
+      background: #2d2016; color: #e2e8f0; cursor: pointer; transition: background 0.15s;
+    }
+    .pin-btn:hover { background: #3d2a1a; }
+    .pin-btn.del { background: #3d1a1a; color: #f87171; }
+    #pin-error { color: #f87171; font-size: 13px; min-height: 20px; text-align: center; max-width: 260px; }
+
+    /* ADMIN PANEL */
+    #admin-panel { display: none; max-width: 500px; margin: 0 auto; padding: 20px 16px 80px; }
+    #admin-panel h1 { font-size: 20px; color: #fbbf24; margin-bottom: 20px; text-align: center; }
+
+    /* OFFER CARD */
+    .offer-card {
+      background: #2d2016; border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+      border: 1px solid #3d2a1a; display: flex; align-items: stretch;
+    }
+    .offer-thumb {
+      width: 100px; min-width: 100px; object-fit: cover; display: block;
+      background: #3d2a1a;
+    }
+    .offer-card-body { padding: 10px 12px; flex: 1; min-width: 0; }
+    .offer-alt { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .offer-link { color: #60a5fa; font-size: 11px; word-break: break-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .offer-actions {
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 8px 6px; gap: 4px; min-width: 40px;
+    }
+    .btn-action {
+      border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+      padding: 6px 8px; line-height: 1;
+    }
+    .btn-up { background: #1e3a5f; color: #93c5fd; }
+    .btn-up:hover { background: #1d4ed8; color: white; }
+    .btn-down { background: #1e3a5f; color: #93c5fd; }
+    .btn-down:hover { background: #1d4ed8; color: white; }
+    .btn-del { background: #3d1a1a; color: #f87171; }
+    .btn-del:hover { background: #dc2626; color: white; }
+    .btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ADD FORM */
+    #add-form {
+      background: #2d2016; border-radius: 14px; padding: 16px;
+      border: 1px solid #fbbf2440; margin-bottom: 20px;
+    }
+    #add-form h2 { font-size: 15px; color: #fbbf24; margin-bottom: 14px; }
+    label { font-size: 13px; color: #94a3b8; display: block; margin-bottom: 4px; }
+    input[type=text], input[type=url] {
+      width: 100%; background: #1a1210; border: 1px solid #3d2a1a; border-radius: 8px;
+      color: #e2e8f0; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; outline: none;
+    }
+    input:focus { border-color: #fbbf24; }
+
+    .tabs-img { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab-img-btn {
+      flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #3d2a1a;
+      background: #1a1210; color: #94a3b8; cursor: pointer; font-size: 13px;
+    }
+    .tab-img-btn.active { background: #3d2a1a; color: #fbbf24; border-color: #fbbf24; }
+
+    .upload-zone {
+      border: 2px dashed #3d2a1a; border-radius: 10px; padding: 20px; text-align: center;
+      cursor: pointer; margin-bottom: 8px; transition: border-color 0.2s; position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: #fbbf24; }
+    .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-zone span { color: #64748b; font-size: 13px; pointer-events: none; display: block; }
+    #upload-preview { max-width: 100%; max-height: 120px; border-radius: 8px; margin-bottom: 8px; display: none; object-fit: contain; }
+    #upload-status { font-size: 12px; color: #10b981; min-height: 16px; margin-bottom: 6px; }
+
+    .btn-add {
+      width: 100%; padding: 12px; background: #fbbf24; color: #1a1210; font-size: 15px;
+      font-weight: 700; border: none; border-radius: 10px; cursor: pointer;
+    }
+    .btn-add:hover { background: #f59e0b; }
+
+    #save-btn {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #16a34a; color: white; border: none; border-radius: 12px;
+      padding: 14px 40px; font-size: 16px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(22,163,74,0.4); display: none; white-space: nowrap;
+    }
+    #save-btn:hover { background: #15803d; }
+    #save-msg { text-align: center; font-size: 13px; color: #10b981; min-height: 20px; margin-top: 8px; }
+    .separator { border: none; border-top: 1px solid #3d2a1a; margin: 20px 0; }
+    .list-title { font-size: 14px; color: #94a3b8; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen">
+  <h1>🔐 Sabinho Admin</h1>
+  <div id="pin-display">_ _ _ _</div>
+  <p id="pin-error"></p>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn" onclick="pinCheck()" style="background:#fbbf24;color:#1a1210;">✓</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <h1>🎰 Gestion des offres</h1>
+
+  <div id="add-form">
+    <h2>➕ Nouvelle offre</h2>
+
+    <label>Nom de l'offre</label>
+    <input type="text" id="new-alt" placeholder="ex: Simsinos Casino" />
+
+    <label>Lien de l'offre</label>
+    <input type="url" id="new-href" placeholder="https://..." />
+
+    <label>Image</label>
+    <div class="tabs-img">
+      <button class="tab-img-btn active" onclick="setImgMode('upload')">📷 Uploader</button>
+      <button class="tab-img-btn" onclick="setImgMode('url')">🔗 URL externe</button>
+    </div>
+
+    <div id="img-upload-zone">
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(this)" />
+        <img id="upload-preview" src="" alt="" />
+        <span id="drop-label">Glisse une image ici ou clique pour choisir</span>
+      </div>
+      <div id="upload-status"></div>
+    </div>
+
+    <div id="img-url-zone" style="display:none;">
+      <input type="url" id="new-image-url" placeholder="https://i.ibb.co/..." />
+    </div>
+
+    <button class="btn-add" onclick="addOffer()">Ajouter l'offre</button>
+  </div>
+
+  <hr class="separator" />
+  <p class="list-title">Offres actuelles (▲▼ pour réordonner) :</p>
+  <div id="offers-list"></div>
+  <div id="save-msg"></div>
+  <button id="save-btn" onclick="saveOffers()">💾 Sauvegarder les modifications</button>
+</div>
+
+<script>
+let pin = '';
+let savedPin = '';
+let offers = [];
+let imgMode = 'upload';
+let uploadedImageUrl = '';
+let dirty = false;
+
+// ---- PIN ----
+function pinPress(d) {
+  if (pin.length >= 4) return;
+  pin += d;
+  updatePinDisplay();
+  if (pin.length === 4) setTimeout(pinCheck, 200);
+}
+function pinDel() {
+  pin = pin.slice(0, -1);
+  updatePinDisplay();
+  document.getElementById('pin-error').textContent = '';
+}
+function updatePinDisplay() {
+  const filled = '● '.repeat(pin.length).trim();
+  const empty = '_ '.repeat(4 - pin.length).trim();
+  document.getElementById('pin-display').textContent = (filled + (filled && empty ? ' ' : '') + empty) || '_ _ _ _';
+}
+async function pinCheck() {
+  if (pin.length !== 4) return;
+  const tryPin = pin;
+  try {
+    const r = await fetch('/sabonus-api/check-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: tryPin })
+    });
+    if (r.ok) {
+      savedPin = tryPin;
+      document.getElementById('pin-screen').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'block';
+      loadOffers();
+    } else {
+      pin = '';
+      updatePinDisplay();
+      const data = await r.json().catch(() => ({}));
+      const err = document.getElementById('pin-error');
+      err.textContent = '❌ ' + (data.error || 'Code incorrect');
+      if (r.status === 429) return;
+      setTimeout(() => err.textContent = '', 3000);
+    }
+  } catch(e) {
+    pin = '';
+    updatePinDisplay();
+    document.getElementById('pin-error').textContent = '❌ Erreur réseau';
+  }
+}
+
+// ---- OFFERS ----
+async function loadOffers() {
+  try {
+    const r = await fetch('/sabonus-api/offers');
+    offers = await r.json();
+    renderOffers();
+  } catch(e) { console.error(e); }
+}
+
+function renderOffers() {
+  const container = document.getElementById('offers-list');
+  container.innerHTML = '';
+  offers.forEach((offer, i) => {
+    const card = document.createElement('div');
+    card.className = 'offer-card';
+    card.innerHTML = `
+      <img class="offer-thumb" src="${offer.imageSrc}" alt="${offer.alt}"
+           onerror="this.style.background='#3d2a1a'" />
+      <div class="offer-card-body">
+        <div class="offer-alt">${offer.alt}</div>
+        <div class="offer-link">${offer.href}</div>
+      </div>
+      <div class="offer-actions">
+        <button class="btn-action btn-up" onclick="moveOffer(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="btn-action btn-del" onclick="removeOffer(${i})">🗑</button>
+        <button class="btn-action btn-down" onclick="moveOffer(${i}, 1)" ${i === offers.length - 1 ? 'disabled' : ''}>▼</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+  document.getElementById('save-btn').style.display = dirty ? 'block' : 'none';
+}
+
+function moveOffer(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= offers.length) return;
+  [offers[i], offers[j]] = [offers[j], offers[i]];
+  dirty = true;
+  renderOffers();
+  document.getElementById('save-btn').style.display = 'block';
+}
+
+function removeOffer(i) {
+  if (!confirm(`Supprimer "${offers[i].alt}" ?`)) return;
+  offers.splice(i, 1);
+  dirty = true;
+  renderOffers();
+  document.getElementById('save-btn').style.display = 'block';
+}
+
+function addOffer() {
+  const alt = document.getElementById('new-alt').value.trim();
+  const href = document.getElementById('new-href').value.trim();
+  let imageSrc = '';
+
+  if (imgMode === 'upload') {
+    imageSrc = uploadedImageUrl;
+    if (!imageSrc) { alert('Upload une image d\'abord !'); return; }
+  } else {
+    imageSrc = document.getElementById('new-image-url').value.trim();
+    if (!imageSrc) { alert('Colle l\'URL de l\'image !'); return; }
+  }
+
+  if (!alt || !href) { alert('Remplis le nom et le lien !'); return; }
+
+  offers.push({ href, imageSrc, alt });
+  dirty = true;
+  renderOffers();
+  document.getElementById('save-btn').style.display = 'block';
+
+  // Reset form
+  document.getElementById('new-alt').value = '';
+  document.getElementById('new-href').value = '';
+  document.getElementById('new-image-url').value = '';
+  document.getElementById('upload-preview').style.display = 'none';
+  document.getElementById('drop-label').textContent = 'Glisse une image ici ou clique pour choisir';
+  document.getElementById('upload-status').textContent = '';
+  uploadedImageUrl = '';
+}
+
+async function saveOffers() {
+  const btn = document.getElementById('save-btn');
+  btn.textContent = '⏳ Sauvegarde...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/sabonus-api/offers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: savedPin, offers })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      dirty = false;
+      document.getElementById('save-msg').textContent = '✓ Sauvegardé ! Le site est mis à jour.';
+      btn.style.display = 'none';
+      setTimeout(() => document.getElementById('save-msg').textContent = '', 4000);
+    } else {
+      alert('Erreur : ' + (data.error || 'inconnue'));
+    }
+  } catch(e) { alert('Erreur réseau'); }
+  btn.textContent = '💾 Sauvegarder les modifications';
+  btn.disabled = false;
+}
+
+// ---- IMAGE MODE ----
+function setImgMode(mode) {
+  imgMode = mode;
+  document.querySelectorAll('.tab-img-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && mode === 'upload') || (i === 1 && mode === 'url'));
+  });
+  document.getElementById('img-upload-zone').style.display = mode === 'upload' ? 'block' : 'none';
+  document.getElementById('img-url-zone').style.display = mode === 'url' ? 'block' : 'none';
+}
+
+// ---- UPLOAD ----
+async function handleFileSelect(input) {
+  const file = input.files[0];
+  if (file) uploadImage(file);
+}
+
+async function uploadImage(file) {
+  const label = document.getElementById('drop-label');
+  const status = document.getElementById('upload-status');
+  const preview = document.getElementById('upload-preview');
+
+  label.textContent = '⏳ Upload en cours...';
+  status.textContent = '';
+
+  const formData = new FormData();
+  formData.append('photo', file);
+  formData.append('pin', savedPin);
+
+  try {
+    const r = await fetch('/sabonus-api/upload', { method: 'POST', body: formData });
+    const data = await r.json();
+    if (data.url) {
+      uploadedImageUrl = data.url;
+      preview.src = data.url;
+      preview.style.display = 'block';
+      status.textContent = '✓ Image uploadée !';
+      label.textContent = 'Changer l\'image';
+    } else {
+      label.textContent = 'Erreur : ' + (data.error || 'inconnue');
+    }
+  } catch(e) {
+    label.textContent = 'Erreur upload';
+  }
+}
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) uploadImage(file);
+});
+</script>
+</body>
+</html>

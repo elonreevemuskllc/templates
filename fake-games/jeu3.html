@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayMe - Jeu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        html {
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+        }
+        
+        body {
+            background: linear-gradient(to bottom right, rgb(56, 189, 248), rgb(59, 130, 246), rgb(37, 99, 235));
+            height: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+        
+        #game-header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            z-index: 100;
+            position: relative;
+            flex-shrink: 0;
+            height: 48px;
+        }
+        
+        #game-title {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        #back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        #back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        #game-frame {
+            flex: 1 1 0;
+            border: none;
+            width: 100%;
+            height: 100%;
+            max-height: none;
+            min-height: 0;
+            background: #000;
+            position: relative;
+            z-index: 1;
+            touch-action: auto;
+            display: block;
+            overflow: hidden;
+        }
+        
+        #loading {
+            display: none; /* Masqué par défaut */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            z-index: 50;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Animation notification iOS */
+        @keyframes slideDownNotification {
+            0% {
+                top: -15rem;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            100% {
+                top: 1.25rem;
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideUpNotification {
+            0% {
+                top: 1.25rem;
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                top: -15rem;
+                opacity: 0;
+            }
+        }
+        
+        #notification-container {
+            position: fixed;
+            top: -15rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 94%;
+            max-width: 24rem;
+            z-index: 9999;
+            opacity: 1 !important;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        #notification-container.show {
+            animation: slideDownNotification 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+            opacity: 1 !important;
+        }
+        
+        #notification-container.hide {
+            animation: slideUpNotification 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+        }
+        
+        @media (max-width: 768px) {
+            #game-header {
+                padding: 6px 12px;
+                height: 44px;
+            }
+            
+            #game-title {
+                font-size: 16px;
+            }
+            
+            #back-button {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+            
+            #notification-container {
+                width: 90%;
+            }
+        }
+        
+        /* MOBILE RESPONSIVE - Amélioration pour petits écrans */
+        @media (max-width: 480px) {
+            #game-header {
+                padding: 5px 10px;
+                height: 40px;
+            }
+            
+            #game-title {
+                font-size: 14px;
+                letter-spacing: 0.5px;
+            }
+            
+            #back-button {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+        }
+    </style>
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "wbbj53so9d");
+</script>
+</head>
+<body>
+    <!-- Filtre SVG pour l'effet liquid glass -->
+    <svg style="position: absolute; width: 0; height: 0;">
+        <defs>
+            <filter id="liquidGlassDistortion">
+                <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+            </filter>
+        </defs>
+    </svg>
+    
+    <!-- Notification iOS -->
+    <div id="notification-container">
+        <div class="relative overflow-hidden rounded-[1.5rem] isolate">
+            <!-- Couche de flou backdrop avec effet liquid glass -->
+            <div 
+                class="absolute inset-0 rounded-[1.5rem] z-0 backdrop-blur-[0.5rem] saturate-150"
+                style="filter: url(#liquidGlassDistortion); -webkit-filter: url(#liquidGlassDistortion);"
+            ></div>
+            
+            <!-- Overlay blanc avec ombre intérieure -->
+            <div 
+                class="absolute inset-0 rounded-[1.5rem] z-10 pointer-events-none bg-white/50"
+                style="box-shadow: inset 0 0 1.75rem -0.625rem rgba(255,255,255,0.6), 0 0 0 0.0625rem rgba(255,255,255,0.35);"
+            ></div>
+            
+            <!-- Bordure extérieure -->
+            <div class="absolute inset-0 rounded-[1.5rem] z-20 pointer-events-none ring-1 ring-white/50"></div>
+            
+            <!-- Contenu -->
+            <div class="relative z-30" style="padding: 0.5rem 1rem;">
+                <div class="flex items-center" style="gap: 0.625rem;">
+                    <!-- Icône de l'app -->
+                    <div class="flex overflow-hidden justify-center items-center bg-gradient-to-br rounded-xl ring-1 ring-inset from-white/60 to-white/30 dark:from-white/10 dark:to-white/5 ring-white/40 dark:ring-white/10 flex-shrink-0" style="width: 2.5rem; height: 2.5rem;">
+                        <img 
+                            src="https://i.ibb.co/yF5SNj9T/images.png" 
+                            alt="Revolut"
+                            class="object-cover w-full h-full"
+                        />
+                    </div>
+                    
+                    <!-- Contenu texte -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-semibold drop-shadow-sm text-black" style="font-size: 0.9375rem;">
+                                Revolut
+                            </h4>
+                            <span class="text-black/60" style="font-size: 0.8125rem;">
+                                maintenant
+                            </span>
+                        </div>
+                        <p class="text-black" style="font-size: 0.875rem; line-height: 1.25; margin-top: 0.0625rem;">
+                            Vous venez de recevoir 2836,59€ de la part de PlayMe Game
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="game-container">
+        <div id="game-header">
+            <div id="game-title">
+                JEUTIKTOK.FR
+            </div>
+            <a href="javascript:void(0)" id="back-button">← Retour</a>
+        </div>
+        
+        <div id="loading">
+            <div class="spinner"></div>
+            Chargement du jeu...
+        </div>
+        
+        <iframe 
+            id="game-frame"
+            src=""
+            allow="fullscreen; autoplay; payment"
+            allowfullscreen
+        ></iframe>
+    </div>
+    
+    <!-- Popup Session Expirée -->
+    <div id="session-popup" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; max-width: 90%; width: 400px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+            <h3 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 15px;">Session Expirée</h3>
+            <p style="color: #6b7280; margin-bottom: 25px; line-height: 1.6;">
+                Si vous voyez un message "Session expirée" dans le jeu, <strong>rechargez simplement la page</strong> pour obtenir une nouvelle session.
+            </p>
+            <button id="popup-ok-btn" style="background: linear-gradient(to right, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; padding: 12px 30px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 16px; width: 100%;">
+                J'ai compris
+            </button>
+            <button id="popup-reload-btn" style="background: rgba(59, 130, 246, 0.1); color: rgb(37, 99, 235); padding: 12px 30px; border: 1px solid rgb(59, 130, 246); border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px;">
+                🔄 Recharger maintenant
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Système de rotation des sessions PlayMe (change à chaque actualisation)
+        const sessions = [
+            'https://galaxsys-gamesalt4-54rg78cw.com/fg-launcher-service?partnerId=3B750117AE04710459DFCA478C4ABE5A&token=9ddf939ecf5a4e498a5c8c5e1ceb9a38&culture=EN&gameType=PlayMe&isMobile=True&isDemo=False',
+            'https://galaxsys-gamesalt4-54rg78cw.com/fg-launcher-service?partnerId=3B750117AE04710459DFCA478C4ABE5A&token=4715302c0b9f4b52ba03726d43d0c1ca&culture=EN&gameType=PlayMe&isMobile=True&isDemo=False',
+            'https://galaxsys-gamesalt4-54rg78cw.com/fg-launcher-service?partnerId=3B750117AE04710459DFCA478C4ABE5A&token=d0e3dbed1cb74425854b520c1b548c0a&culture=EN&gameType=PlayMe&isMobile=True&isDemo=False'
+        ];
+        
+        // Récupérer ou initialiser l'index de session
+        let sessionIndex = parseInt(localStorage.getItem('playmeSessionIndex') || '0');
+        
+        // Fonction pour obtenir la prochaine session
+        function getNextSession() {
+            const session = sessions[sessionIndex];
+            // Passer à la session suivante pour le prochain chargement
+            sessionIndex = (sessionIndex + 1) % sessions.length;
+            localStorage.setItem('playmeSessionIndex', sessionIndex.toString());
+            console.log('🎮 Session actuelle:', sessionIndex === 0 ? sessions.length : sessionIndex, '/', sessions.length);
+            console.log('🔄 Prochaine session:', sessionIndex + 1, '/', sessions.length);
+            return session;
+        }
+        
+        // Charger la session dans l'iframe
+        const iframe = document.getElementById('game-frame');
+        const loading = document.getElementById('loading');
+        iframe.src = getNextSession();
+        
+        // Afficher la popup au premier chargement (une seule fois)
+        const hasSeenPopup = localStorage.getItem('playmePopupSeen');
+        if (!hasSeenPopup) {
+            setTimeout(() => {
+                const popup = document.getElementById('session-popup');
+                popup.style.display = 'flex';
+                localStorage.setItem('playmePopupSeen', 'true');
+            }, 2000); // Afficher après 2 secondes
+        }
+        
+        // Gérer les boutons de la popup
+        document.getElementById('popup-ok-btn').addEventListener('click', function() {
+            document.getElementById('session-popup').style.display = 'none';
+        });
+        
+        document.getElementById('popup-reload-btn').addEventListener('click', function() {
+            location.reload();
+        });
+        
+        // Fermer la popup en cliquant en dehors
+        document.getElementById('session-popup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+        
+        // Pas de loader - on affiche directement l'iframe
+        
+        // Gérer les erreurs de chargement (optionnel)
+        iframe.addEventListener('error', function() {
+            console.error('❌ Erreur de chargement de l\'iframe');
+        });
+        
+        // Bloquer le scroll sur le body mais autoriser dans l'iframe
+        document.body.addEventListener('touchmove', function(e) {
+            if (e.target !== iframe && !iframe.contains(e.target)) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.body.addEventListener('scroll', function(e) {
+            e.preventDefault();
+            window.scrollTo(0, 0);
+        });
+        
+        // Fonction pour générer un montant aléatoire
+        function generateRandomAmount() {
+            // Montant entre 150€ et 3975€ avec 2 décimales
+            const amount = (Math.random() * (3975 - 150) + 150).toFixed(2);
+            // Format français : 2 836,59€
+            return amount.replace(/\B(?=(\d{3})+(?!\d))/g, ' ').replace('.', ',');
+        }
+        
+        // Fonction pour jouer le son de notification iOS
+        function playNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Son de notification iOS (2 tons rapides)
+                const now = audioContext.currentTime;
+                
+                // Premier ton (Mi aigu)
+                const osc1 = audioContext.createOscillator();
+                const gain1 = audioContext.createGain();
+                osc1.connect(gain1);
+                gain1.connect(audioContext.destination);
+                osc1.frequency.value = 1318; // E6
+                gain1.gain.setValueAtTime(0.3, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc1.start(now);
+                osc1.stop(now + 0.1);
+                
+                // Deuxième ton (Do# aigu)
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.value = 1108; // C#6
+                gain2.gain.setValueAtTime(0.3, now + 0.1);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc2.start(now + 0.1);
+                osc2.stop(now + 0.2);
+                
+                console.log('🔊 Son de notification joué');
+            } catch (error) {
+                console.warn('⚠️ Impossible de jouer le son:', error);
+            }
+        }
+        
+        // Fonction pour afficher la notification
+        function showNotification() {
+            const notification = document.getElementById('notification-container');
+            const amountElement = notification.querySelector('p');
+            
+            if (notification) {
+                // Générer un nouveau montant
+                const newAmount = generateRandomAmount();
+                amountElement.textContent = `Vous venez de recevoir ${newAmount}€ de la part de PlayMe Game`;
+                console.log('💰 Nouveau montant:', newAmount + '€');
+                
+                // Son + Vibration en même temps que l'animation
+                playNotificationSound();
+                
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([30, 50, 30]);
+                    console.log('📳 Vibration déclenchée');
+                }
+                
+                // Retirer les classes précédentes
+                notification.classList.remove('hide');
+                notification.classList.add('show');
+                console.log('🎬 Notification affichée avec montant:', newAmount + '€');
+                
+                // Masquer après 4 secondes d'affichage
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    notification.classList.add('hide');
+                    console.log('📊 Notification cachée');
+                }, 4000);
+            }
+        }
+        
+        // Gérer le clic sur le bouton "Retour"
+        document.getElementById('back-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🎯 Bouton Retour cliqué - Démarrage timer 4 secondes');
+            
+            // Afficher la notification après 4 secondes
+            setTimeout(() => {
+                console.log('✅ 4 secondes écoulées, affichage de la notification');
+                showNotification();
+            }, 4000);
+        });
+    </script>
+</body>
+</html>

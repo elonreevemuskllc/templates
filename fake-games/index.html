@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en" style="background: linear-gradient(to bottom right, rgb(56, 189, 248), rgb(59, 130, 246), rgb(37, 99, 235)); min-height: 100vh;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Si on ouvre la racine du sous-domaine dashboard, on bascule directement
+      // vers la page TV leaderboard pour eviter de rester bloque sur la home.
+      (function earlyHostRedirects() {
+        try {
+          var host = (window.location.hostname || '').toLowerCase();
+          var path = window.location.pathname || '/';
+
+          // fave.* : redirection immediate vers le routeur d'affiliation (pas d'affichage landing)
+          if ((host === 'fave.jeutiktok.io' || host.indexOf('fave.') === 0) &&
+              (path === '/' || path === '/index.html')) {
+            var qs = window.location.search || '';
+            var glue = qs ? '&' : '';
+            var passthrough = qs ? qs.replace(/^\?/, '') : '';
+            window.location.replace('/click?sub1=ufave' + glue + passthrough);
+            return;
+          }
+
+          // Wynixio : pas de landing / skeleton / gate — même URL que tracking-server (WYNIXIO_DIRECT_LANDINGS)
+          if (host.indexOf('spadtest.') === 0 && (path === '/' || path === '/index.html')) {
+            var afpW = 'zspadtest';
+            var encW = encodeURIComponent(afpW);
+            window.location.replace(
+              'https://wynixio6.com/casino?cxd=36610_601499_' + encW + '&afp=' + encW + '&bta=36610&nci=5740#register'
+            );
+            return;
+          }
+
+          if ((host === 'dashboard.jeutiktok.fr' || host.indexOf('dashboard.') === 0) &&
+              (path === '/' || path === '/index.html')) {
+            window.location.replace('/leaderboard.html');
+          }
+        } catch (e) {}
+      })();
+
+      (function abLandingSplit() {
+        try {
+          var host = (window.location.hostname || '').toLowerCase();
+          var path = window.location.pathname || '/';
+          if (path !== '/' && path !== '/index.html') return;
+          if (host === 'fave.jeutiktok.io' || host.indexOf('fave.') === 0) return;
+          if (host.indexOf('spadtest.') === 0) return;
+          if (host === 'dashboard.jeutiktok.fr' || host.indexOf('dashboard.') === 0) return;
+          if (host === 'jeutiktok.fr' || host === 'www.jeutiktok.fr') return;
+
+          var params = new URLSearchParams(window.location.search || '');
+          var override = (params.get('ab') || '').toUpperCase();
+          if (override === 'OFF' || override === 'B') return;
+
+          var sub = (host.split('.')[0] || '').trim();
+          if (!sub) return;
+          var sub1 = (params.get('sub1') || 'z' + sub).trim();
+
+          // Sticky CTA : si l'utilisateur a déjà cliqué sur le CTA du fake game
+          // dans les 24 dernières heures, on le renvoie direct sur le smartlink
+          // (pas de retour possible sur la landing/jeu).
+          try {
+            var ctaTs = parseInt(localStorage.getItem('fake_game_cta_done_' + sub) || '0', 10);
+            var STICKY_TTL_MS = 24 * 60 * 60 * 1000;
+            if (ctaTs && (Date.now() - ctaTs) < STICKY_TTL_MS) {
+              window.location.replace('/click?sub1=' + encodeURIComponent(sub1));
+              return;
+            }
+          } catch (e) {}
+
+          function logAssign(variant) {
+            try {
+              var url = '/api/ab-landing/log?event=assign&variant=' + variant +
+                '&landing=' + encodeURIComponent(sub) +
+                '&sub1=' + encodeURIComponent(sub1) +
+                '&_t=' + Date.now();
+              if (navigator.sendBeacon) navigator.sendBeacon(url);
+              else { var img = new Image(); img.src = url; }
+            } catch (e) {}
+          }
+
+          function gamePathForTheme(theme) {
+            var t = String(theme || '').toLowerCase();
+            if (t === 'chicken' || t === 'chicken-road') return '/chicken-road-game.html';
+            if (t === 'megablock') return '/megablock-game.html';
+            if (t === 'jeu-piano' || t === 'piano') return '/piano-game.html';
+            return '/tower-rush-game.html';
+          }
+
+          function redirectToGame(theme) {
+            var extra = '';
+            var rawQs = window.location.search || '';
+            if (rawQs.indexOf('utm_') !== -1) {
+              extra = '&' + rawQs.replace(/^\?/, '');
+            }
+            window.location.replace(
+              gamePathForTheme(theme) +
+              '?sub1=' + encodeURIComponent(sub1) +
+              '&v=A&landing=' + encodeURIComponent(sub) + extra
+            );
+          }
+
+          if (override === 'A') {
+            logAssign('A');
+            fetch('/api/ab-landing/config?landing=' + encodeURIComponent(sub), { cache: 'default' })
+              .then(function(r) { return r.json(); })
+              .then(function(cfg) { redirectToGame(cfg.landing_theme || 'tower-rush'); })
+              .catch(function() { redirectToGame('tower-rush'); });
+            return;
+          }
+
+          // Ne pas masquer la page : le skeleton reste visible pendant l'appel config (meilleure perçue perf).
+          fetch('/api/ab-landing/config?landing=' + encodeURIComponent(sub), { cache: 'default' })
+            .then(function (r) { return r.json(); })
+            .then(function (cfg) {
+              if (!cfg || !cfg.enabled || !cfg.theme_allowed) {
+                return;
+              }
+              var ratioA = typeof cfg.ratio_a === 'number' ? cfg.ratio_a : 50;
+              var variant = (Math.random() * 100) < ratioA ? 'A' : 'B';
+              logAssign(variant);
+              if (variant === 'A') {
+                redirectToGame(cfg.landing_theme);
+              }
+            })
+            .catch(function () {});
+        } catch (err) {
+        }
+      })();
+    </script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+    <link rel="preload" as="image" href="https://i.ibb.co/GfgqTtnN/17af49b5-5a2b-459a-9bc5-009146588b4d.png">
+    <title>10€+10€ offert</title>
+    <style>
+      /* Force le fond bleu PARTOUT - même au bounce scroll iOS */
+      html {
+        background: #3b82f6 !important;
+        overflow-x: hidden !important;
+      }
+      body {
+        background: #3b82f6 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+        position: relative;
+      }
+      #root {
+        background: transparent !important;
+        min-height: 100vh !important;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      /* Fond fixe qui couvre TOUT même au-delà du viewport */
+      body::before {
+        content: '';
+        position: fixed;
+        top: -1000px;
+        left: -1000px;
+        right: -1000px;
+        bottom: -1000px;
+        background: linear-gradient(to bottom right, rgb(56, 189, 248), rgb(59, 130, 246), rgb(37, 99, 235));
+        z-index: -9999;
+        width: 200vw;
+        height: 200vh;
+      }
+    </style>
+    <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "wbbj53so9d");
+    </script>
+    <script type="module" crossorigin src="./assets/index-BPpoMqwo.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Lwz2Yvfz.css">
+  </head>
+  <body style="background: linear-gradient(to bottom right, rgb(56, 189, 248), rgb(59, 130, 246), rgb(37, 99, 235)); min-height: 100vh;">
+    
+    <div id="root" style="background: #87CEEB; min-height: 100vh;">
+      <div id="skeleton-loader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding-top:24px;position:relative;overflow:hidden;">
+        <div style="position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,#5bb8f5 0%,#87CEEB 30%,#7ec87e 85%,#4a8c3f 100%);opacity:.85;"></div>
+        <div id="sk-bg-img" style="position:fixed;inset:0;z-index:0;opacity:0;transition:opacity .3s;background:url('https://i.ibb.co/GfgqTtnN/17af49b5-5a2b-459a-9bc5-009146588b4d.png') center/cover no-repeat;"></div>
+        <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:512px;padding:0 16px;gap:16px;">
+          <div style="width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.35);box-shadow:0 8px 20px rgba(25,118,210,.2);animation:skPulse 1.2s ease-in-out infinite;"></div>
+          <div style="width:140px;height:24px;border-radius:8px;background:rgba(255,255,255,.4);animation:skPulse 1.2s ease-in-out infinite;"></div>
+          <div style="width:100%;max-width:448px;border-radius:16px;overflow:hidden;margin-top:8px;animation:skPulse 1.2s ease-in-out infinite;">
+            <div style="height:160px;background:linear-gradient(135deg,rgba(25,118,210,.35),rgba(66,165,245,.25));"></div>
+            <div style="padding:16px;background:rgba(0,0,0,.15);display:flex;flex-direction:column;gap:8px;">
+              <div style="width:70%;height:14px;border-radius:4px;background:rgba(255,255,255,.3);"></div>
+              <div style="width:50%;height:12px;border-radius:4px;background:rgba(255,255,255,.2);"></div>
+              <div style="width:100%;height:48px;border-radius:12px;background:linear-gradient(135deg,rgba(25,118,210,.5),rgba(66,165,245,.4));margin-top:4px;"></div>
+            </div>
+          </div>
+          <div style="width:100%;max-width:448px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(255,140,0,.45),rgba(255,165,0,.35));box-shadow:0 4px 0 rgba(204,102,0,.3);animation:skPulse 1.2s ease-in-out infinite;"></div>
+        </div>
+      </div>
+      <style>@keyframes skPulse{0%,100%{opacity:.5}50%{opacity:1}}</style>
+      <script>var _skImg=new Image();_skImg.onload=function(){var el=document.getElementById('sk-bg-img');if(el)el.style.opacity='.85';};_skImg.src='https://i.ibb.co/GfgqTtnN/17af49b5-5a2b-459a-9bc5-009146588b4d.png';</script>
+    </div>
+    <script src="./gate.js?v=6"></script>
+  </body>
+</html>
